@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase'
-import { VideoFrameExtractor } from '@/lib/videoProcessing'
+import { SupabaseClient } from '@supabase/supabase-js'
+import { Database } from '@/types/supabase'
+import { VideoFrameExtractor, ExtractedFrame } from '@/lib/videoProcessing'
 import { PDFGenerator } from '@/lib/pdfGenerator'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -10,14 +11,15 @@ export interface ScanResult {
 }
 
 export class ScanService {
-  private supabase = createClient()
+  private supabase: SupabaseClient<Database>
   private frameExtractor?: VideoFrameExtractor
   private pdfGenerator?: PDFGenerator
 
-  constructor() {
-    if (!this.supabase) {
-      console.warn('ScanService: Supabase is not configured')
+  constructor(supabase: SupabaseClient<Database> | null) {
+    if (!supabase) {
+      throw new Error('ScanService requires an authenticated Supabase client. Please ensure you are logged in.')
     }
+    this.supabase = supabase
     
     // Only initialize client-side classes on the client
     if (typeof window !== 'undefined') {
@@ -141,7 +143,7 @@ export class ScanService {
 
   private async uploadFrames(
     scanId: string,
-    frames: Array<{ blob: Blob; index: number }>,
+    frames: ExtractedFrame[],
     onProgress?: (progress: number) => void
   ): Promise<string[]> {
     const urls: string[] = []

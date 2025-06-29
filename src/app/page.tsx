@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { ScanService } from '@/services/scanService'
 import SetupNotice from '@/components/SetupNotice'
 import CameraRecorder from '@/components/CameraRecorder'
-import { createClient } from '@/lib/supabase'
 
 export default function Home() {
   const [videoFile, setVideoFile] = useState<File | null>(null)
@@ -20,9 +19,8 @@ export default function Home() {
   const [isCameraSupported, setIsCameraSupported] = useState(false)
   const [showActionSheet, setShowActionSheet] = useState(false)
   
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, signOut, supabase } = useAuth()
   const router = useRouter()
-  const supabase = createClient()
 
   // Check if Supabase is configured
   const isSupabaseConfigured = !!supabase
@@ -36,6 +34,8 @@ export default function Home() {
     }
   }, [])
 
+
+
   // Redirect to auth page if not logged in
   // Temporarily disabled for testing - uncomment when ready for production
   // useEffect(() => {
@@ -45,11 +45,11 @@ export default function Home() {
   // }, [user, loading, router, isSupabaseConfigured])
 
   useEffect(() => {
-    // Initialize ScanService only on client side
-    if (typeof window !== 'undefined') {
-      setScanService(new ScanService())
+    // Initialize ScanService only on client side with authenticated client
+    if (typeof window !== 'undefined' && supabase) {
+      setScanService(new ScanService(supabase))
     }
-  }, [])
+  }, [supabase])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]

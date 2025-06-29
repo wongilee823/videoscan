@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { ScanService } from '@/services/scanService'
-import { createClient } from '@/lib/supabase'
 
 interface Scan {
   id: string
@@ -24,15 +23,16 @@ interface UserStats {
   subscription: string
 }
 
+
+
 export default function Dashboard() {
   const [scans, setScans] = useState<Scan[]>([])
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  const { user } = useAuth()
+  const { user, supabase } = useAuth()
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     if (!user) {
@@ -47,24 +47,41 @@ export default function Dashboard() {
         setLoading(true)
         setError(null)
 
+
         // Load user's scans
-        const scanService = new ScanService()
+        const scanService = new ScanService(supabase)
         const userScans = await scanService.getUserScans(user.id)
         setScans(userScans)
 
-        // Load user stats
-        const { data: userData } = await supabase
+        // Load user stats with better error handling
+        const { data: userData, error: userError } = await supabase
           .from('users')
           .select('subscription_status')
           .eq('id', user.id)
-          .single()
+          .maybeSingle() // Use maybeSingle() to handle cases where user profile doesn't exist
 
-        const { data: usageData } = await supabase
+        if (userError) {
+          console.error('Error fetching user data:', userError)
+          if (userError.code === 'PGRST116') {
+            // No rows returned - user profile might not exist
+            console.log('User profile not found, using defaults')
+          }
+        }
+
+        const { data: usageData, error: usageError } = await supabase
           .from('usage_tracking')
           .select('scan_count')
           .eq('user_id', user.id)
           .eq('month', new Date().toISOString().slice(0, 7) + '-01')
-          .single()
+          .maybeSingle() // Use maybeSingle() instead of single() to handle no rows gracefully
+
+        if (usageError) {
+          console.error('Error fetching usage data:', usageError)
+          if (usageError.code === 'PGRST116') {
+            // No rows returned - this is normal for new users
+            console.log('No usage data found for current month')
+          }
+        }
 
         setStats({
           totalScans: userScans.length,
@@ -72,9 +89,13 @@ export default function Dashboard() {
           monthlyLimit: userData?.subscription_status === 'pro' ? -1 : 5,
           subscription: userData?.subscription_status || 'free'
         })
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error loading dashboard data:', err)
-        setError('Failed to load dashboard data')
+        if (err.message?.includes('406')) {
+          setError('Authentication error: Please sign out and sign in again.')
+        } else {
+          setError('Failed to load dashboard data')
+        }
       } finally {
         setLoading(false)
       }

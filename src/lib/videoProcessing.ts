@@ -1,4 +1,4 @@
-interface ExtractedFrame {
+export interface ExtractedFrame {
   timestamp: number
   blob: Blob
   index: number
