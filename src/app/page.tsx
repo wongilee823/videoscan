@@ -285,7 +285,6 @@ export default function Home() {
                     <input
                       type="file"
                       accept="video/*"
-                      capture="environment"
                       onChange={handleFileSelect}
                       className="hidden"
                       id="video-upload"
