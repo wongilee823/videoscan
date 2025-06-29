@@ -23,6 +23,11 @@ export default function CameraRecorder({ onVideoRecorded, onCancel }: CameraReco
     try {
       setPermissionError(null)
       
+      // Check if mediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not available. Please ensure you are using HTTPS or localhost.')
+      }
+      
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: facingMode,
@@ -49,6 +54,8 @@ export default function CameraRecorder({ onVideoRecorded, onCancel }: CameraReco
           setPermissionError('Camera access denied. Please enable camera permissions for this site.')
         } else if (error.name === 'NotFoundError') {
           setPermissionError('No camera found on this device.')
+        } else if (error.message.includes('Camera API not available')) {
+          setPermissionError(error.message)
         } else {
           setPermissionError('Unable to access camera. Please try again.')
         }

@@ -18,6 +18,7 @@ export default function Home() {
   const [showCamera, setShowCamera] = useState(false)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [isCameraSupported, setIsCameraSupported] = useState(false)
   
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
@@ -25,6 +26,15 @@ export default function Home() {
 
   // Check if Supabase is configured
   const isSupabaseConfigured = !!supabase
+
+  // Check if camera is supported
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsCameraSupported(
+        !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+      )
+    }
+  }, [])
 
   // Redirect to auth page if not logged in
   // Temporarily disabled for testing - uncomment when ready for production
@@ -195,8 +205,15 @@ export default function Home() {
             </div>
 
             {/* Mode Selection */}
+            {!isCameraSupported && (
+              <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  📱 Camera access requires HTTPS. Use ngrok or deploy to Vercel for camera features.
+                </p>
+              </div>
+            )}
             <div className="mb-6">
-              <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+              <div className={`flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 ${!isCameraSupported ? 'justify-center' : ''}`}>
                 <button
                   type="button"
                   onClick={() => setShowCamera(false)}
@@ -211,20 +228,22 @@ export default function Home() {
                   </svg>
                   Upload Video
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCamera(true)}
-                  className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+                {isCameraSupported && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCamera(true)}
+                    className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
                     showCamera 
                       ? 'bg-blue-600 text-white' 
                       : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                   }`}
-                >
-                  <svg className="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Record Video
-                </button>
+                  >
+                    <svg className="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Record Video
+                  </button>
+                )}
               </div>
             </div>
 
