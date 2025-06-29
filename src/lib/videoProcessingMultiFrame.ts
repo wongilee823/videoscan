@@ -8,6 +8,14 @@ export interface ExtractedFrame {
   qualityScore?: number
   pageDetection?: DetectedPage
   histogram?: number[]
+  mergeQuality?: {
+    framesUsed: number
+    avgQuality: number
+    minQuality: number
+    maxQuality: number
+    alignmentSuccess: boolean
+    poorRegions: number
+  }
 }
 
 export interface MultiFramePageDetection {
@@ -31,6 +39,8 @@ interface PageCandidate {
   startTime: number
   endTime: number
   avgHistogram: number[]
+  allFrames?: ExtractedFrame[] // Store all collected frames for smart selection
+  allImageData?: ImageData[] // Store all image data for smart selection
 }
 
 export class VideoFrameExtractorMulti {
@@ -117,19 +127,9 @@ export class VideoFrameExtractorMulti {
                   const histDistance = compareHistograms(histogram, currentPageCandidate.avgHistogram)
                   
                   if (histDistance < 0.2 && time - currentPageCandidate.startTime < multiFrameDetection.captureWindow!) {
-                    // Same page - add to current candidate
+                    // Same page - add to candidate collection
                     await this.addFrameToCandidate(currentPageCandidate, time, detection, imageData, qualityScore, histogram)
-                    console.log(`[Multi-Frame] Added frame ${currentPageCandidate.frames.length} to page ${pageCandidates.length + 1}`)
-                    
-                    // Check if we have enough frames
-                    if (currentPageCandidate.frames.length >= multiFrameDetection.framesPerPage!) {
-                      pageCandidates.push(currentPageCandidate)
-                      console.log(`[Multi-Frame] ✓ Completed page ${pageCandidates.length} with ${currentPageCandidate.frames.length} frames`)
-                      currentPageCandidate = null
-                      
-                      // Skip ahead to find next page
-                      time += 1.0
-                    }
+                    console.log(`[Multi-Frame] Collected frame ${currentPageCandidate.frames.length} for page ${pageCandidates.length + 1} (quality: ${qualityScore.toFixed(1)})`)
                   } else {
                     // Different page - save current and start new
                     if (currentPageCandidate.frames.length >= 2) { // At least 2 frames
@@ -163,7 +163,8 @@ export class VideoFrameExtractorMulti {
           URL.revokeObjectURL(video.src)
           
           // Process page candidates to create final frames
-          const finalFrames = await this.processPageCandidates(pageCandidates, canvas, ctx)
+          const targetFrames = multiFrameDetection.framesPerPage || 4
+          const finalFrames = await this.processPageCandidates(pageCandidates, canvas, ctx, targetFrames)
           
           console.log(`[Multi-Frame] ✓ Extracted ${finalFrames.length} pages from video`)
           resolve(finalFrames)
@@ -189,19 +190,23 @@ export class VideoFrameExtractorMulti {
   ): Promise<PageCandidate> {
     const blob = await this.imageDataToBlob(imageData)
     
+    const firstFrame = {
+      timestamp: time,
+      blob,
+      index: 0,
+      qualityScore,
+      pageDetection: detection,
+      histogram
+    }
+    
     return {
-      frames: [{
-        timestamp: time,
-        blob,
-        index: 0,
-        qualityScore,
-        pageDetection: detection,
-        histogram
-      }],
+      frames: [firstFrame],
       imageDataArray: [imageData],
       startTime: time,
       endTime: time,
-      avgHistogram: histogram
+      avgHistogram: histogram,
+      allFrames: [firstFrame], // Initialize collection for all frames
+      allImageData: [imageData] // Initialize collection for all image data
     }
   }
 
@@ -215,21 +220,32 @@ export class VideoFrameExtractorMulti {
   ): Promise<void> {
     const blob = await this.imageDataToBlob(imageData)
     
-    candidate.frames.push({
+    const frame = {
       timestamp: time,
       blob,
-      index: candidate.frames.length,
+      index: candidate.allFrames?.length || candidate.frames.length,
       qualityScore,
       pageDetection: detection,
       histogram
-    })
+    }
     
+    // Always add to collection arrays
+    if (candidate.allFrames) {
+      candidate.allFrames.push(frame)
+    }
+    if (candidate.allImageData) {
+      candidate.allImageData.push(imageData)
+    }
+    
+    // For now, also add to frames array (will be replaced by smart selection later)
+    candidate.frames.push(frame)
     candidate.imageDataArray.push(imageData)
     candidate.endTime = time
     
-    // Update average histogram
+    // Update average histogram based on all frames
+    const allFramesCount = candidate.allFrames?.length || candidate.frames.length
     const newAvg = candidate.avgHistogram.map((val, i) => 
-      (val * (candidate.frames.length - 1) + histogram[i]) / candidate.frames.length
+      (val * (allFramesCount - 1) + histogram[i]) / allFramesCount
     )
     candidate.avgHistogram = newAvg
   }
@@ -237,25 +253,47 @@ export class VideoFrameExtractorMulti {
   private async processPageCandidates(
     candidates: PageCandidate[],
     canvas: HTMLCanvasElement,
-    ctx: CanvasRenderingContext2D
+    ctx: CanvasRenderingContext2D,
+    targetFramesPerPage: number = 4
   ): Promise<ExtractedFrame[]> {
     const finalFrames: ExtractedFrame[] = []
     
     for (let i = 0; i < candidates.length; i++) {
       const candidate = candidates[i]
-      console.log(`[Multi-Frame] Processing page ${i + 1} with ${candidate.frames.length} frames`)
+      
+      // Use smart frame selection if we have collected all frames
+      let selectedFrames: ExtractedFrame[]
+      let selectedImageData: ImageData[]
+      
+      if (candidate.allFrames && candidate.allImageData && candidate.allFrames.length > targetFramesPerPage) {
+        // Smart selection: Pick the best frames based on quality
+        const selection = this.selectBestFrames(
+          candidate.allFrames,
+          candidate.allImageData,
+          targetFramesPerPage
+        )
+        selectedFrames = selection.frames
+        selectedImageData = selection.imageData
+        
+        console.log(`[Multi-Frame] Processing page ${i + 1}: selected ${selectedFrames.length} best frames from ${candidate.allFrames.length} total`)
+      } else {
+        // Fallback to original frames if smart selection not available
+        selectedFrames = candidate.frames
+        selectedImageData = candidate.imageDataArray
+        console.log(`[Multi-Frame] Processing page ${i + 1} with ${selectedFrames.length} frames`)
+      }
       
       // Create frame group for merging
       const frameGroup: FrameGroup = {
         pageNumber: i,
-        frames: candidate.imageDataArray,
-        corners: candidate.frames.map(f => f.pageDetection?.corners || []),
-        qualityScores: candidate.frames.map(f => f.qualityScore || 0),
-        timestamps: candidate.frames.map(f => f.timestamp)
+        frames: selectedImageData,
+        corners: selectedFrames.map(f => f.pageDetection?.corners || []),
+        qualityScores: selectedFrames.map(f => f.qualityScore || 0),
+        timestamps: selectedFrames.map(f => f.timestamp)
       }
       
       // Merge frames
-      const mergedImageData = mergeFrames(frameGroup)
+      const mergeResult = mergeFrames(frameGroup)
       
       // Calculate average corners for perspective correction
       const validCorners = frameGroup.corners.filter(c => c.length === 4)
@@ -273,9 +311,9 @@ export class VideoFrameExtractorMulti {
         }
         
         // Put merged image data on canvas
-        canvas.width = mergedImageData.width
-        canvas.height = mergedImageData.height
-        ctx.putImageData(mergedImageData, 0, 0)
+        canvas.width = mergeResult.imageData.width
+        canvas.height = mergeResult.imageData.height
+        ctx.putImageData(mergeResult.imageData, 0, 0)
         
         // Apply perspective correction
         try {
@@ -283,11 +321,24 @@ export class VideoFrameExtractorMulti {
           console.log(`[Multi-Frame] Applied perspective correction to page ${i + 1}`)
         } catch (error) {
           console.warn(`Failed to apply perspective correction to page ${i + 1}:`, error)
-          finalBlob = await this.imageDataToBlob(mergedImageData)
+          finalBlob = await this.imageDataToBlob(mergeResult.imageData)
         }
       } else {
-        finalBlob = await this.imageDataToBlob(mergedImageData)
+        finalBlob = await this.imageDataToBlob(mergeResult.imageData)
       }
+      
+      // Calculate quality metrics
+      const qualityMetrics = {
+        framesUsed: selectedFrames.length,
+        avgQuality: frameGroup.qualityScores.reduce((a, b) => a + b, 0) / frameGroup.qualityScores.length,
+        minQuality: Math.min(...frameGroup.qualityScores),
+        maxQuality: Math.max(...frameGroup.qualityScores),
+        alignmentSuccess: mergeResult.metrics.alignmentSuccess,
+        poorRegions: mergeResult.metrics.poorRegions
+      }
+      
+      // Log quality summary
+      console.log(`[Multi-Frame] Page ${i + 1} quality: ${qualityMetrics.avgQuality.toFixed(1)} (${qualityMetrics.minQuality.toFixed(1)}-${qualityMetrics.maxQuality.toFixed(1)}), ${qualityMetrics.poorRegions}/${mergeResult.metrics.totalRegions} poor regions`)
       
       // Create final frame
       finalFrames.push({
@@ -302,7 +353,8 @@ export class VideoFrameExtractorMulti {
           timestamp: candidate.startTime,
           qualityScore: Math.max(...frameGroup.qualityScores)
         } : undefined,
-        histogram: candidate.avgHistogram
+        histogram: candidate.avgHistogram,
+        mergeQuality: qualityMetrics
       })
     }
     
@@ -380,5 +432,89 @@ export class VideoFrameExtractorMulti {
     
     // Higher variance indicates sharper image
     return variance
+  }
+
+  private selectBestFrames(
+    allFrames: ExtractedFrame[],
+    allImageData: ImageData[],
+    targetCount: number
+  ): { frames: ExtractedFrame[], imageData: ImageData[] } {
+    if (allFrames.length <= targetCount) {
+      return { frames: allFrames, imageData: allImageData }
+    }
+
+    // Calculate quality variance to determine if we need more frames
+    const qualityScores = allFrames.map(f => f.qualityScore || 0)
+    const avgQuality = qualityScores.reduce((a, b) => a + b, 0) / qualityScores.length
+    const variance = qualityScores.reduce((sum, score) => sum + Math.pow(score - avgQuality, 2), 0) / qualityScores.length
+    const stdDev = Math.sqrt(variance)
+
+    // Adaptive frame count based on quality variance
+    let adaptiveTargetCount = targetCount
+    if (stdDev > avgQuality * 0.3) { // High variance - use more frames
+      adaptiveTargetCount = Math.min(targetCount + 2, 6, allFrames.length)
+      console.log(`[Multi-Frame] High quality variance detected (std: ${stdDev.toFixed(1)}, avg: ${avgQuality.toFixed(1)}). Using ${adaptiveTargetCount} frames.`)
+    } else if (stdDev < avgQuality * 0.1 && allFrames.length > 3) { // Low variance - can use fewer
+      adaptiveTargetCount = Math.max(3, targetCount - 1)
+      console.log(`[Multi-Frame] Low quality variance detected. Using ${adaptiveTargetCount} frames.`)
+    }
+
+    // Sort frames by quality score
+    const frameIndices = allFrames
+      .map((frame, index) => ({ frame, index, quality: frame.qualityScore || 0 }))
+      .sort((a, b) => b.quality - a.quality)
+
+    // Select top frames with temporal distribution
+    const selected: { frame: ExtractedFrame, index: number }[] = []
+    const selectedIndices = new Set<number>()
+    
+    // First, take the best frame
+    selected.push(frameIndices[0])
+    selectedIndices.add(frameIndices[0].index)
+
+    // Then select remaining frames ensuring temporal distribution
+    const minTimeDiff = 0.2 // Minimum 200ms between selected frames
+    
+    for (const candidate of frameIndices.slice(1)) {
+      if (selected.length >= adaptiveTargetCount) break
+      
+      // Check temporal distribution
+      let tooClose = false
+      for (const sel of selected) {
+        const timeDiff = Math.abs(candidate.frame.timestamp - sel.frame.timestamp)
+        if (timeDiff < minTimeDiff) {
+          tooClose = true
+          break
+        }
+      }
+      
+      if (!tooClose) {
+        selected.push(candidate)
+        selectedIndices.add(candidate.index)
+      }
+    }
+
+    // If we still need more frames, relax the temporal constraint
+    if (selected.length < adaptiveTargetCount) {
+      for (const candidate of frameIndices.slice(1)) {
+        if (selected.length >= adaptiveTargetCount) break
+        if (!selectedIndices.has(candidate.index)) {
+          selected.push(candidate)
+          selectedIndices.add(candidate.index)
+        }
+      }
+    }
+
+    // Sort selected frames by timestamp for consistency
+    selected.sort((a, b) => a.frame.timestamp - b.frame.timestamp)
+
+    // Log selection details
+    const qualityRange = selected.map(s => s.frame.qualityScore || 0)
+    console.log(`[Multi-Frame] Selected frames quality range: ${Math.min(...qualityRange).toFixed(1)} - ${Math.max(...qualityRange).toFixed(1)}`)
+
+    return {
+      frames: selected.map(s => s.frame),
+      imageData: selected.map(s => allImageData[s.index])
+    }
   }
 }
