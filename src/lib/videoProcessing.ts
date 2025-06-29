@@ -5,16 +5,19 @@ interface ExtractedFrame {
 }
 
 export class VideoFrameExtractor {
-  private video: HTMLVideoElement
-  private canvas: HTMLCanvasElement
-  private ctx: CanvasRenderingContext2D
+  private video?: HTMLVideoElement
+  private canvas?: HTMLCanvasElement
+  private ctx?: CanvasRenderingContext2D
 
   constructor() {
-    this.video = document.createElement('video')
-    this.canvas = document.createElement('canvas')
-    const context = this.canvas.getContext('2d')
-    if (!context) throw new Error('Failed to get canvas context')
-    this.ctx = context
+    // Only initialize DOM elements on client side
+    if (typeof window !== 'undefined') {
+      this.video = document.createElement('video')
+      this.canvas = document.createElement('canvas')
+      const context = this.canvas.getContext('2d')
+      if (!context) throw new Error('Failed to get canvas context')
+      this.ctx = context
+    }
   }
 
   async extractFrames(
@@ -22,18 +25,26 @@ export class VideoFrameExtractor {
     intervalSeconds: number = 1,
     onProgress?: (progress: number) => void
   ): Promise<ExtractedFrame[]> {
+    if (!this.video || !this.canvas || !this.ctx) {
+      throw new Error('VideoFrameExtractor not initialized - ensure running in browser')
+    }
+    
+    const video = this.video
+    const canvas = this.canvas
+    const ctx = this.ctx
+    
     return new Promise((resolve, reject) => {
       const frames: ExtractedFrame[] = []
-      this.video.src = URL.createObjectURL(videoFile)
+      video.src = URL.createObjectURL(videoFile)
       
-      this.video.addEventListener('loadedmetadata', async () => {
-        const duration = this.video.duration
-        this.canvas.width = this.video.videoWidth
-        this.canvas.height = this.video.videoHeight
+      video.addEventListener('loadedmetadata', async () => {
+        const duration = video.duration
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
         
         try {
           for (let time = 0; time < duration; time += intervalSeconds) {
-            this.video.currentTime = time
+            video.currentTime = time
             await this.waitForSeek()
             
             const frame = await this.captureFrame(time, frames.length)
@@ -44,25 +55,31 @@ export class VideoFrameExtractor {
             }
           }
           
-          URL.revokeObjectURL(this.video.src)
+          URL.revokeObjectURL(video.src)
           resolve(frames)
         } catch (error) {
-          URL.revokeObjectURL(this.video.src)
+          URL.revokeObjectURL(video.src)
           reject(error)
         }
       })
 
-      this.video.addEventListener('error', () => {
-        URL.revokeObjectURL(this.video.src)
+      video.addEventListener('error', () => {
+        URL.revokeObjectURL(video.src)
         reject(new Error('Failed to load video'))
       })
     })
   }
 
   private waitForSeek(): Promise<void> {
+    if (!this.video) {
+      return Promise.reject(new Error('Video element not initialized'))
+    }
+    
+    const video = this.video
+    
     return new Promise((resolve) => {
       const checkSeek = () => {
-        if (this.video.seeking) {
+        if (video.seeking) {
           requestAnimationFrame(checkSeek)
         } else {
           resolve()
@@ -73,10 +90,18 @@ export class VideoFrameExtractor {
   }
 
   private async captureFrame(timestamp: number, index: number): Promise<ExtractedFrame> {
-    this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height)
+    if (!this.video || !this.canvas || !this.ctx) {
+      throw new Error('VideoFrameExtractor not initialized')
+    }
+    
+    const video = this.video
+    const canvas = this.canvas
+    const ctx = this.ctx
+    
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     
     return new Promise((resolve, reject) => {
-      this.canvas.toBlob((blob) => {
+      canvas.toBlob((blob) => {
         if (blob) {
           resolve({ timestamp, blob, index })
         } else {

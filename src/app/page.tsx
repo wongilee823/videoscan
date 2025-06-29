@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { ScanService } from '@/services/scanService'
 import SetupNotice from '@/components/SetupNotice'
@@ -12,20 +13,28 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [scanService, setScanService] = useState<ScanService | null>(null)
   
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
-  const scanService = new ScanService()
   const supabase = createClient()
 
   // Check if Supabase is configured
   const isSupabaseConfigured = !!supabase
 
+  // Temporarily disabled auth redirect for testing
+  // useEffect(() => {
+  //   if (!loading && !user && isSupabaseConfigured) {
+  //     router.push('/auth')
+  //   }
+  // }, [user, loading, router, isSupabaseConfigured])
+
   useEffect(() => {
-    if (!loading && !user && isSupabaseConfigured) {
-      router.push('/auth')
+    // Initialize ScanService only on client side
+    if (typeof window !== 'undefined') {
+      setScanService(new ScanService())
     }
-  }, [user, loading, router, isSupabaseConfigured])
+  }, [])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -37,7 +46,7 @@ export default function Home() {
   }
 
   const handleUpload = async () => {
-    if (!videoFile || !user) return
+    if (!videoFile || !user || !scanService) return
 
     setIsProcessing(true)
     setUploadProgress(0)
@@ -81,20 +90,31 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <Link href="/" className="text-xl font-semibold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300">
                 Video Flip-Scan
-              </h1>
+              </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600 dark:text-gray-300">
-                {user?.email}
-              </span>
-              <button
-                onClick={signOut}
-                className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-              >
-                Sign Out
-              </button>
+              {user ? (
+                <>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {user.email}
+                  </span>
+                  <button
+                    onClick={signOut}
+                    className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <Link 
+                  href="/auth" 
+                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </div>
         </div>

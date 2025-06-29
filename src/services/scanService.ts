@@ -11,12 +11,18 @@ export interface ScanResult {
 
 export class ScanService {
   private supabase = createClient()
-  private frameExtractor = new VideoFrameExtractor()
-  private pdfGenerator = new PDFGenerator()
+  private frameExtractor?: VideoFrameExtractor
+  private pdfGenerator?: PDFGenerator
 
   constructor() {
     if (!this.supabase) {
       console.warn('ScanService: Supabase is not configured')
+    }
+    
+    // Only initialize client-side classes on the client
+    if (typeof window !== 'undefined') {
+      this.frameExtractor = new VideoFrameExtractor()
+      this.pdfGenerator = new PDFGenerator()
     }
   }
 
@@ -27,6 +33,10 @@ export class ScanService {
   ): Promise<ScanResult> {
     if (!this.supabase) {
       throw new Error('Supabase is not configured. Please set up your environment variables.')
+    }
+    
+    if (!this.frameExtractor || !this.pdfGenerator) {
+      throw new Error('ScanService not fully initialized - ensure running in browser')
     }
 
     try {

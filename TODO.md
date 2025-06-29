@@ -11,6 +11,11 @@
 - [x] Build video frame extraction logic
 - [x] Add progress tracking
 - [x] Create project documentation
+- [x] Set up GitHub repository
+- [x] Configure MCP (Model Context Protocol) for GitHub and Supabase
+- [x] Fix SSR issues with VideoFrameExtractor and ScanService
+- [x] Implement navigation with clickable logo
+- [x] Add conditional auth UI (Sign In/Sign Out buttons)
 
 ### 🔄 In Progress
 - [ ] **Supabase Setup**
