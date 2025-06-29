@@ -168,6 +168,12 @@ The application is feature-complete for MVP with:
 - Access the HTTPS URL provided by ngrok on iPhone
 - Camera and OAuth features will work with HTTPS
 
+### Quick Start After Restart
+1. Open terminal 1: `npm run dev` (starts the development server)
+2. Open terminal 2: `ngrok http 3000` (creates HTTPS tunnel)
+3. Use the ngrok HTTPS URL on your iPhone
+4. Note: ngrok URL changes each time you restart it
+
 ### Mobile Testing Checklist
 1. Camera recording functionality (HTTPS only)
 2. Video upload from photo library
