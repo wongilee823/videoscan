@@ -116,10 +116,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
    - Run migration from `supabase/migrations/20240629_create_initial_schema.sql`
    - Create storage buckets: `frames` and `pdfs`
    - Apply storage policies from `supabase/storage-policies.sql`
-2. Configure Google OAuth in Supabase Dashboard:
-   - Enable Google provider in Authentication > Providers
-   - Add Google Client ID and Secret from Google Cloud Console
-   - Set callback URL in Google Cloud Console: `https://<project-ref>.supabase.co/auth/v1/callback`
+2. Configure Google OAuth:
+   a. In Google Cloud Console (https://console.cloud.google.com/):
+      - Create new project or use existing
+      - Enable Google+ API
+      - Create OAuth 2.0 credentials (Web application)
+      - Add authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`
+      - Copy Client ID and Client Secret
+   b. In Supabase Dashboard:
+      - Go to Authentication > Providers
+      - Enable Google provider
+      - Add Google Client ID and Client Secret
+      - Save
 3. Configure environment variables
 4. Deploy to Vercel or similar platform
 
