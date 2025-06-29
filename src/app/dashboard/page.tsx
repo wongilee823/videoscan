@@ -89,9 +89,9 @@ export default function Dashboard() {
           monthlyLimit: userData?.subscription_status === 'pro' ? -1 : 5,
           subscription: userData?.subscription_status || 'free'
         })
-      } catch (err: any) {
+      } catch (err) {
         console.error('Error loading dashboard data:', err)
-        if (err.message?.includes('406')) {
+        if (err instanceof Error && err.message?.includes('406')) {
           setError('Authentication error: Please sign out and sign in again.')
         } else {
           setError('Failed to load dashboard data')

@@ -106,7 +106,8 @@ export default function Home() {
       const result = await scanService.processVideo(
         videoFile,
         user.id,
-        (progress) => setUploadProgress(Math.round(progress))
+        (progress) => setUploadProgress(Math.round(progress)),
+        true // Enable page detection
       )
       
       setPdfUrl(result.pdfUrl)

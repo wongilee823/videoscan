@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/supabase'
 import { VideoFrameExtractor, ExtractedFrame } from '@/lib/videoProcessing'
+import { VideoFrameExtractorMulti } from '@/lib/videoProcessingMultiFrame'
 import { PDFGenerator } from '@/lib/pdfGenerator'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -13,6 +14,7 @@ export interface ScanResult {
 export class ScanService {
   private supabase: SupabaseClient<Database>
   private frameExtractor?: VideoFrameExtractor
+  private frameExtractorMulti?: VideoFrameExtractorMulti
   private pdfGenerator?: PDFGenerator
 
   constructor(supabase: SupabaseClient<Database> | null) {
@@ -24,6 +26,7 @@ export class ScanService {
     // Only initialize client-side classes on the client
     if (typeof window !== 'undefined') {
       this.frameExtractor = new VideoFrameExtractor()
+      this.frameExtractorMulti = new VideoFrameExtractorMulti()
       this.pdfGenerator = new PDFGenerator()
     }
   }
@@ -31,13 +34,14 @@ export class ScanService {
   async processVideo(
     videoFile: File,
     userId: string,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    enablePageDetection: boolean = false
   ): Promise<ScanResult> {
     if (!this.supabase) {
       throw new Error('Supabase is not configured. Please set up your environment variables.')
     }
     
-    if (!this.frameExtractor || !this.pdfGenerator) {
+    if (!this.frameExtractor || !this.frameExtractorMulti || !this.pdfGenerator) {
       throw new Error('ScanService not fully initialized - ensure running in browser')
     }
 
@@ -73,16 +77,43 @@ export class ScanService {
 
       // Extract frames from video with quality analysis
       onProgress?.(10)
-      const frames = await this.frameExtractor.extractFramesWithQuality(
-        videoFile,
-        {
-          intervalSeconds: 0.5, // Check every 0.5 seconds for better coverage
-          minQualityScore: 30, // Filter out very blurry frames
-          maxFrames: isProUser ? 100 : 20, // More frames for pro users
-          smartSelection: true // Enable intelligent frame selection
-        },
-        (progress) => onProgress?.(10 + progress * 0.3) // 10-40%
-      )
+      
+      let frames: ExtractedFrame[]
+      
+      if (enablePageDetection) {
+        // Use multi-frame page detection for better quality
+        frames = await this.frameExtractorMulti.extractPagesWithMultiFrame(
+          videoFile,
+          {
+            intervalSeconds: 0.1, // Check every 100ms for multiple frames
+            minQualityScore: 10, // Very low threshold to not miss frames
+            pageDetectionOptions: {
+              minArea: 0.2, // Document should be at least 20% of frame
+              stabilityDuration: 100, // Faster detection at 0.1s
+              stabilityThreshold: 30, // More tolerance for hand movement
+              motionThreshold: 0.25, // Allow 25% motion for faster processing
+              maxSkewAngle: 30, // Maximum 30 degree rotation
+            },
+            multiFrameDetection: {
+              framesPerPage: 4, // Capture 4 frames per page
+              captureWindow: 2.0 // 2 second window to capture frames for same page
+            }
+          },
+          (progress) => onProgress?.(10 + progress * 0.3) // 10-40%
+        )
+      } else {
+        // Regular frame extraction
+        frames = await this.frameExtractor.extractFramesWithQuality(
+          videoFile,
+          {
+            intervalSeconds: 0.5, // Check every 0.5 seconds for better coverage
+            minQualityScore: 30, // Filter out very blurry frames
+            maxFrames: isProUser ? 100 : 20, // More frames for pro users
+            smartSelection: true // Enable intelligent frame selection
+          },
+          (progress) => onProgress?.(10 + progress * 0.3) // 10-40%
+        )
+      }
 
       // Limit pages for free users
       const maxPages = isProUser ? frames.length : Math.min(frames.length, 20)
@@ -173,7 +204,7 @@ export class ScanService {
 
       urls.push(publicUrl)
 
-      // Save frame record with quality score
+      // Save frame record with quality score and page detection data
       await this.supabase
         .from('frames')
         .insert({
@@ -181,6 +212,9 @@ export class ScanService {
           frame_index: frame.index,
           file_url: publicUrl,
           quality_score: frame.qualityScore || null,
+          corner_coordinates: frame.pageDetection ? frame.pageDetection.corners : null,
+          is_detected_page: frame.pageDetection ? true : false,
+          detection_confidence: frame.pageDetection ? frame.pageDetection.confidence : null,
         })
 
       // Update progress

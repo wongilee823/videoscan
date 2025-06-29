@@ -18,7 +18,7 @@ export default function AuthCodeErrorPage() {
           </h1>
           
           <p className="text-gray-600 dark:text-gray-300 mb-6">
-            We couldn't complete the sign-in process. This might happen if:
+            We couldn&apos;t complete the sign-in process. This might happen if:
           </p>
           
           <ul className="text-left text-gray-600 dark:text-gray-300 mb-8 space-y-2">
