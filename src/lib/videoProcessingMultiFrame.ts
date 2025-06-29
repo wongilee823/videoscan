@@ -108,12 +108,14 @@ export class VideoFrameExtractorMulti {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
             
+            // Calculate quality score for all frames
+            const qualityScore = this.analyzeFrameQuality(imageData)
+            
             // Detect page
             const detection = detectPage(imageData, pageDetectionOptions)
             
             if (detection && detection.confidence > 0.5) {
-              // Calculate quality and histogram
-              const qualityScore = this.analyzeFrameQuality(imageData)
+              // Calculate histogram
               const histogram = calculateHistogram(imageData)
               
               if (qualityScore >= minQualityScore) {
@@ -148,9 +150,18 @@ export class VideoFrameExtractorMulti {
               onProgress((time / duration) * 100)
             }
 
-            // Stop if we have 4 pages
+            // Early termination - stop if we have 4 pages with enough frames
             if (pageCandidates.length >= 4) {
+              console.log(`[Multi-Frame] Found 4 pages, stopping early for performance`)
               break
+            }
+            
+            // Skip detailed detection after finding 2 pages to speed up
+            if (pageCandidates.length >= 2 && !detection) {
+              // Use simplified detection - just check for blur
+              if (qualityScore >= minQualityScore * 2) { // Higher threshold for non-detected frames
+                time += 0.5 // Skip ahead more aggressively
+              }
             }
           }
 
@@ -188,11 +199,10 @@ export class VideoFrameExtractorMulti {
     qualityScore: number,
     histogram: number[]
   ): Promise<PageCandidate> {
-    const blob = await this.imageDataToBlob(imageData)
-    
+    // Defer blob creation for performance
     const firstFrame = {
       timestamp: time,
-      blob,
+      blob: null as unknown as Blob, // Will create later if selected
       index: 0,
       qualityScore,
       pageDetection: detection,
@@ -218,11 +228,10 @@ export class VideoFrameExtractorMulti {
     qualityScore: number,
     histogram: number[]
   ): Promise<void> {
-    const blob = await this.imageDataToBlob(imageData)
-    
+    // Defer blob creation for performance
     const frame = {
       timestamp: time,
-      blob,
+      blob: null as unknown as Blob, // Will create later if selected
       index: candidate.allFrames?.length || candidate.frames.length,
       qualityScore,
       pageDetection: detection,

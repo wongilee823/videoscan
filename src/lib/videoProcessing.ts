@@ -283,8 +283,6 @@ export class VideoFrameExtractor {
     const video = this.video
     const canvas = this.canvas
     const detectedPages: ExtractedFrame[] = []
-    let lastDetectedPage: DetectedPage | null = null
-    let lastPageHistogram: number[] | null = null
     const pageHistograms: number[][] = [] // Store all captured page histograms
 
     return new Promise((resolve, reject) => {
@@ -321,72 +319,36 @@ export class VideoFrameExtractor {
             // Add detection to stability tracker with frame data
             this.stabilityTracker.addDetection(frame.pageDetection || null, imageData)
 
-            // Always try to detect if we have a valid page, regardless of motion
-            if (frame.pageDetection && frame.qualityScore && frame.qualityScore >= minQualityScore) {
-              let shouldCapture = false
+            // Check if the stability tracker has identified a stable page
+            if (this.stabilityTracker.isStable()) {
+              const stableDetection = this.stabilityTracker.getStableDetection()
               
-              if (!lastDetectedPage) {
-                // First page - always capture if quality is good
-                shouldCapture = true
-                console.log(`[Page Detection] First page detected`)
-              } else {
-                // Check if this is a different page
-                const isDifferent = this.isDifferentPage(lastDetectedPage, frame.pageDetection)
-                
-                // Check content difference using histogram
-                if (frame.histogram && lastPageHistogram) {
-                  const histogramDistance = compareHistograms(frame.histogram, lastPageHistogram)
-                  console.log(`[Page Detection] Histogram distance: ${histogramDistance.toFixed(3)}`)
-                  
-                  // Only capture if content is significantly different
-                  if (histogramDistance > 0.3) { // Much higher threshold to avoid duplicates
-                    shouldCapture = true
-                    console.log(`[Page Detection] Different content detected via histogram`)
-                  } else if (isDifferent && histogramDistance > 0.1) {
-                    // If corners moved AND some content change, capture it
-                    shouldCapture = true
-                    console.log(`[Page Detection] Different page detected (corners + content)`)
-                  } else {
-                    console.log(`[Page Detection] Similar content, skipping`)
+              if (stableDetection && frame.qualityScore && frame.qualityScore >= minQualityScore) {
+                // Check against all previously captured pages
+                let isDuplicate = false
+                if (frame.histogram) {
+                  for (let i = 0; i < pageHistograms.length; i++) {
+                    const histDistance = compareHistograms(frame.histogram, pageHistograms[i])
+                    if (histDistance < 0.2) { // Very similar to a previous page
+                      isDuplicate = true
+                      console.log(`[Page Detection] Duplicate of page ${i + 1} detected (distance: ${histDistance.toFixed(3)})`)
+                      break
+                    }
                   }
-                } else if (isDifferent) {
-                  shouldCapture = true
                 }
-              }
-              
-              if (shouldCapture) {
-                // Ensure we're not capturing the same page too quickly
-                if (detectedPages.length === 0 || time - detectedPages[detectedPages.length - 1].timestamp > 1.0) { // Increased to 1 second
-                  // Check against all previously captured pages
-                  let isDuplicate = false
+                
+                if (!isDuplicate) {
+                  detectedPages.push(frame)
                   if (frame.histogram) {
-                    for (let i = 0; i < pageHistograms.length; i++) {
-                      const histDistance = compareHistograms(frame.histogram, pageHistograms[i])
-                      if (histDistance < 0.2) { // Very similar to a previous page
-                        isDuplicate = true
-                        console.log(`[Page Detection] Duplicate of page ${i + 1} detected (distance: ${histDistance.toFixed(3)})`)
-                        break
-                      }
-                    }
+                    pageHistograms.push(frame.histogram)
                   }
+                  console.log(`[Page Detection] ✓ Page ${detectedPages.length} captured at ${time.toFixed(2)}s (quality: ${frame.qualityScore.toFixed(0)})`)
                   
-                  if (!isDuplicate) {
-                    detectedPages.push(frame)
-                    lastDetectedPage = frame.pageDetection
-                    lastPageHistogram = frame.histogram || null
-                    if (frame.histogram) {
-                      pageHistograms.push(frame.histogram)
-                    }
-                    console.log(`[Page Detection] ✓ Page ${detectedPages.length} captured at ${time.toFixed(2)}s (quality: ${frame.qualityScore.toFixed(0)})`)
-                    
-                    // Skip ahead significantly to avoid duplicates
-                    time += 1.5 // Skip 1.5 seconds ahead
-                  } else {
-                    // Skip ahead less if duplicate detected
-                    time += 0.3
-                  }
-                } else {
-                  console.log(`[Page Detection] Too soon after last capture, skipping`)
+                  // Reset tracker to look for next page flip
+                  this.stabilityTracker.reset()
+                  
+                  // Skip ahead to avoid re-detecting same page
+                  time += 1.0
                 }
               }
             }

@@ -81,22 +81,19 @@ export class ScanService {
       let frames: ExtractedFrame[]
       
       if (enablePageDetection) {
-        // Use multi-frame page detection for better quality
-        frames = await this.frameExtractorMulti.extractPagesWithMultiFrame(
+        // Use single-frame page detection for now (multi-frame needs more work)
+        frames = await this.frameExtractor.extractPagesFromVideo(
           videoFile,
           {
-            intervalSeconds: 0.1, // Check every 100ms for multiple frames
-            minQualityScore: 10, // Very low threshold to not miss frames
+            intervalSeconds: 0.3, // Check every 300ms
+            minQualityScore: 10, // Very low threshold to not miss pages
+            maxFrames: isProUser ? 100 : 20, // More frames for pro users
             pageDetectionOptions: {
               minArea: 0.2, // Document should be at least 20% of frame
               stabilityDuration: 100, // Faster detection at 0.1s
               stabilityThreshold: 30, // More tolerance for hand movement
               motionThreshold: 0.25, // Allow 25% motion for faster processing
               maxSkewAngle: 30, // Maximum 30 degree rotation
-            },
-            multiFrameDetection: {
-              framesPerPage: 4, // Capture 4 frames per page
-              captureWindow: 2.0 // 2 second window to capture frames for same page
             }
           },
           (progress) => onProgress?.(10 + progress * 0.3) // 10-40%

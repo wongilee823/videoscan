@@ -85,7 +85,7 @@ export function analyzeRegionQuality(imageData: ImageData, gridSize: number = 12
 }
 
 // Merge multiple frames using best regions from each
-export function mergeFrames(frameGroup: FrameGroup, gridSize: number = 12, enableAlignment: boolean = true): MergeResult {
+export function mergeFrames(frameGroup: FrameGroup, gridSize: number = 8, enableAlignment: boolean = false): MergeResult {
   if (frameGroup.frames.length === 0) {
     throw new Error('No frames to merge')
   }
@@ -104,15 +104,15 @@ export function mergeFrames(frameGroup: FrameGroup, gridSize: number = 12, enabl
   const width = frameGroup.frames[0].width
   const height = frameGroup.frames[0].height
   
-  // Auto-adjust grid size based on resolution
-  if (!gridSize || gridSize === 12) {
+  // Auto-adjust grid size based on resolution (reduced for performance)
+  if (!gridSize || gridSize === 8) {
     const pixels = width * height
     if (pixels < 1000000) { // < 1MP
-      gridSize = 8
+      gridSize = 6
     } else if (pixels < 4000000) { // < 4MP
-      gridSize = 12
+      gridSize = 8
     } else { // >= 4MP
-      gridSize = 16
+      gridSize = 10
     }
   }
   

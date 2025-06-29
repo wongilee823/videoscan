@@ -417,38 +417,20 @@ export function detectPage(
 
 // Order corners clockwise starting from top-left
 function orderCorners(corners: Point[]): Point[] {
-  // Find center
-  const center = corners.reduce(
-    (acc, p) => ({ x: acc.x + p.x / 4, y: acc.y + p.y / 4 }),
-    { x: 0, y: 0 }
-  );
+  // Sort by y-coordinate to separate top and bottom corners
+  const sortedY = [...corners].sort((a, b) => a.y - b.y);
   
-  // Sort by angle from center
-  const sorted = corners.sort((a, b) => {
-    const angleA = Math.atan2(a.y - center.y, a.x - center.x);
-    const angleB = Math.atan2(b.y - center.y, b.x - center.x);
-    return angleA - angleB;
-  });
+  // Top corners are the first two, bottom are the last two
+  const topCorners = sortedY.slice(0, 2).sort((a, b) => a.x - b.x);
+  const bottomCorners = sortedY.slice(2, 4).sort((a, b) => a.x - b.x);
   
-  // Find top-left (minimum sum of x + y)
-  let topLeftIdx = 0;
-  let minSum = sorted[0].x + sorted[0].y;
-  
-  for (let i = 1; i < sorted.length; i++) {
-    const sum = sorted[i].x + sorted[i].y;
-    if (sum < minSum) {
-      minSum = sum;
-      topLeftIdx = i;
-    }
-  }
-  
-  // Reorder starting from top-left
-  return [
-    sorted[topLeftIdx],
-    sorted[(topLeftIdx + 1) % 4],
-    sorted[(topLeftIdx + 2) % 4],
-    sorted[(topLeftIdx + 3) % 4],
-  ];
+  // The ordered corners are: top-left, top-right, bottom-right, bottom-left
+  const topLeft = topCorners[0];
+  const topRight = topCorners[1];
+  const bottomLeft = bottomCorners[0];
+  const bottomRight = bottomCorners[1];
+
+  return [topLeft, topRight, bottomRight, bottomLeft];
 }
 
 // Calculate detection confidence based on shape properties
