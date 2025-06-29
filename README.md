@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Video Flip-Scan
+
+Transform videos of document pages into high-quality, searchable PDF files with AI-powered processing.
+
+## Features
+
+- 📹 **Video to PDF**: Upload a video of yourself flipping through pages
+- 🤖 **AI Processing**: Automatic frame extraction and optimization
+- 🔍 **OCR Support**: Create searchable PDFs (coming soon)
+- 💫 **Smart Processing**: Blur detection and quality analysis
+- 🎯 **Free & Pro Plans**: Start free, upgrade for advanced features
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- npm or yarn
+- Supabase account (for backend services)
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/videoscan.git
+cd videoscan
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+```bash
+cp .env.local.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Edit `.env.local` with your Supabase credentials:
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-## Learn More
+4. Run the development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: Supabase (Auth, Database, Storage)
+- **Processing**: Browser-based video frame extraction
+- **PDF Generation**: pdf-lib (coming soon)
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+videoscan/
+├── src/
+│   ├── app/           # Next.js app directory
+│   ├── lib/           # Utility functions
+│   └── types/         # TypeScript types
+├── public/            # Static assets
+└── supabase/          # Supabase functions (coming soon)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Roadmap
+
+- [x] Basic video upload interface
+- [x] Frame extraction from video
+- [ ] Supabase integration
+- [ ] OCR processing
+- [ ] PDF generation
+- [ ] User authentication
+- [ ] Free/Pro plan implementation
+- [ ] Dashboard for scan history
+
+## License
+
+MIT
