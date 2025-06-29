@@ -14,7 +14,7 @@ export function createClient() {
     console.error('See SUPABASE_SETUP.md for instructions.')
     
     // Return a mock client to prevent crashes during development
-    return null as any
+    return null as unknown as ReturnType<typeof createBrowserClient<Database>>
   }
 
   return createBrowserClient<Database>(

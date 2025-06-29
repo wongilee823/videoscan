@@ -83,15 +83,14 @@ export class PDFGenerator {
 
     // Add watermark if needed (for free users)
     if (includeWatermark) {
-      await this.addWatermark(pdfDoc, page, pageWidth, pageHeight)
+      await this.addWatermark(pdfDoc, page, pageWidth)
     }
   }
 
   private async addWatermark(
     pdfDoc: PDFDocument,
-    page: any,
-    pageWidth: number,
-    pageHeight: number
+    page: ReturnType<PDFDocument['addPage']>,
+    pageWidth: number
   ): Promise<void> {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
     const watermarkText = 'Scanned with Video Flip-Scan'

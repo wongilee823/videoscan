@@ -2,6 +2,14 @@ interface ExtractedFrame {
   timestamp: number
   blob: Blob
   index: number
+  qualityScore?: number
+}
+
+export interface FrameExtractionOptions {
+  intervalSeconds?: number
+  minQualityScore?: number
+  maxFrames?: number
+  smartSelection?: boolean
 }
 
 export class VideoFrameExtractor {
@@ -31,7 +39,6 @@ export class VideoFrameExtractor {
     
     const video = this.video
     const canvas = this.canvas
-    const ctx = this.ctx
     
     return new Promise((resolve, reject) => {
       const frames: ExtractedFrame[] = []
@@ -100,10 +107,14 @@ export class VideoFrameExtractor {
     
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     
+    // Calculate quality score
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const qualityScore = this.analyzeFrameQuality(imageData)
+    
     return new Promise((resolve, reject) => {
       canvas.toBlob((blob) => {
         if (blob) {
-          resolve({ timestamp, blob, index })
+          resolve({ timestamp, blob, index, qualityScore })
         } else {
           reject(new Error('Failed to capture frame'))
         }
@@ -145,5 +156,55 @@ export class VideoFrameExtractor {
     
     // Higher variance indicates sharper image
     return variance
+  }
+
+  async extractFramesWithQuality(
+    videoFile: File,
+    options: FrameExtractionOptions = {},
+    onProgress?: (progress: number) => void
+  ): Promise<ExtractedFrame[]> {
+    const {
+      intervalSeconds = 0.5,
+      minQualityScore = 50,
+      maxFrames = 50,
+      smartSelection = true
+    } = options
+
+    // Extract all frames with quality scores
+    const allFrames = await this.extractFrames(videoFile, intervalSeconds, onProgress)
+    
+    if (!smartSelection) {
+      return allFrames
+    }
+
+    // Filter out low quality frames
+    const qualityFrames = allFrames.filter(frame => 
+      frame.qualityScore !== undefined && frame.qualityScore >= minQualityScore
+    )
+
+    // If we have too many frames, select the best ones
+    if (qualityFrames.length > maxFrames) {
+      // Sort by quality score and select best frames with good distribution
+      return this.selectBestFrames(qualityFrames, maxFrames)
+    }
+
+    return qualityFrames
+  }
+
+  private selectBestFrames(frames: ExtractedFrame[], targetCount: number): ExtractedFrame[] {
+    // Group frames into segments
+    const segmentSize = Math.ceil(frames.length / targetCount)
+    const selectedFrames: ExtractedFrame[] = []
+
+    for (let i = 0; i < frames.length; i += segmentSize) {
+      const segment = frames.slice(i, i + segmentSize)
+      // Select the highest quality frame from each segment
+      const bestFrame = segment.reduce((best, frame) => 
+        (frame.qualityScore || 0) > (best.qualityScore || 0) ? frame : best
+      )
+      selectedFrames.push(bestFrame)
+    }
+
+    return selectedFrames.slice(0, targetCount)
   }
 }

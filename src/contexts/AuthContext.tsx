@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { User } from '@supabase/supabase-js'
+import { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase'
 
 interface AuthContextType {
@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -27,14 +28,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    const checkSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        setUser(data.session?.user ?? null)
+      } catch (error) {
+        console.error('Error checking session:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkSession()
 
     // Listen for changes on auth state (signed in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ?? null)
+      
+      // Ensure user profile exists when signing in
+      if (event === 'SIGNED_IN' && session?.user) {
+        const { error } = await supabase
+          .from('users')
+          .upsert({
+            id: session.user.id,
+            email: session.user.email!,
+          }, {
+            onConflict: 'id'
+          })
+        
+        if (error && error.code !== '23505') {
+          console.error('Error ensuring user profile exists:', error)
+        }
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -55,19 +80,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) {
       throw new Error('Supabase is not configured. Please set up your environment variables.')
     }
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     })
     if (error) throw error
 
-    // Create user profile
-    if (user) {
-      await supabase.from('users').insert({
-        id: user.id,
-        email: user.email!,
+    // Create user profile after successful signup
+    if (data.user) {
+      const { error: profileError } = await supabase.from('users').insert({
+        id: data.user.id,
+        email: data.user.email!,
       })
+      
+      if (profileError && profileError.code !== '23505') { // Ignore duplicate key error
+        console.error('Error creating user profile:', profileError)
+      }
     }
+  }
+
+  const signInWithGoogle = async () => {
+    if (!supabase) {
+      throw new Error('Supabase is not configured. Please set up your environment variables.')
+    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      }
+    })
+    if (error) throw error
   }
 
   const signOut = async () => {
@@ -79,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   )

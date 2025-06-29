@@ -69,11 +69,16 @@ export class ScanService {
 
       if (scanError) throw scanError
 
-      // Extract frames from video
+      // Extract frames from video with quality analysis
       onProgress?.(10)
-      const frames = await this.frameExtractor.extractFrames(
+      const frames = await this.frameExtractor.extractFramesWithQuality(
         videoFile,
-        1, // 1 frame per second
+        {
+          intervalSeconds: 0.5, // Check every 0.5 seconds for better coverage
+          minQualityScore: 30, // Filter out very blurry frames
+          maxFrames: isProUser ? 100 : 20, // More frames for pro users
+          smartSelection: true // Enable intelligent frame selection
+        },
         (progress) => onProgress?.(10 + progress * 0.3) // 10-40%
       )
 
@@ -83,7 +88,7 @@ export class ScanService {
 
       // Upload frames to Supabase storage
       onProgress?.(40)
-      const uploadedFrames = await this.uploadFrames(scanId, processedFrames, onProgress)
+      await this.uploadFrames(scanId, processedFrames, onProgress)
 
       // Generate PDF
       onProgress?.(70)
@@ -146,7 +151,7 @@ export class ScanService {
       const frame = frames[i]
       const fileName = `${scanId}/frame_${frame.index}.jpg`
       
-      const { data, error } = await this.supabase.storage
+      const { error } = await this.supabase.storage
         .from('frames')
         .upload(fileName, frame.blob)
 
@@ -159,13 +164,14 @@ export class ScanService {
 
       urls.push(publicUrl)
 
-      // Save frame record
+      // Save frame record with quality score
       await this.supabase
         .from('frames')
         .insert({
           scan_id: scanId,
           frame_index: frame.index,
           file_url: publicUrl,
+          quality_score: frame.qualityScore || null,
         })
 
       // Update progress
@@ -179,7 +185,7 @@ export class ScanService {
   private async uploadPDF(scanId: string, pdfBlob: Blob): Promise<string> {
     const fileName = `${scanId}/document.pdf`
     
-    const { data, error } = await this.supabase.storage
+    const { error } = await this.supabase.storage
       .from('pdfs')
       .upload(fileName, pdfBlob)
 
@@ -203,7 +209,18 @@ export class ScanService {
     if (error) throw error
   }
 
-  async getUserScans(userId: string): Promise<any[]> {
+  async getUserScans(userId: string): Promise<Array<{
+    id: string
+    user_id: string
+    file_name: string
+    page_count: number
+    status: string
+    file_url: string | null
+    file_size: number | null
+    has_watermark: boolean
+    created_at: string
+    updated_at: string
+  }>> {
     const { data, error } = await this.supabase
       .from('scans')
       .select('*')
