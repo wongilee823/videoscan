@@ -155,6 +155,21 @@ The application is feature-complete for MVP with:
 - Comprehensive dashboard
 - Clean, maintainable codebase
 
+## Testing on Mobile Devices
+
+### Local Network Testing (iPhone)
+- Computer IP address: `192.168.1.190`
+- Access URL from iPhone: `http://192.168.1.190:3000`
+- Ensure both devices are on the same WiFi network
+- For HTTPS/OAuth testing, use ngrok or deploy to Vercel
+
+### Mobile Testing Checklist
+1. Camera recording functionality
+2. Video upload from photo library
+3. Authentication flow (email and Google)
+4. Responsive design on different screen sizes
+5. Touch interactions and gestures
+
 ## Important Reminders
 - Do what has been asked; nothing more, nothing less
 - Keep responses concise and to the point
