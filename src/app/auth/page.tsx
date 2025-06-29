@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase'
 import SetupNotice from '@/components/SetupNotice'
@@ -57,9 +58,11 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            VidPDF
-          </h1>
+          <Link href="/" className="inline-block">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">
+              VidPDF
+            </h1>
+          </Link>
           <p className="mt-2 text-gray-600 dark:text-gray-300">
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
           </p>

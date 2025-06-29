@@ -128,8 +128,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
       - Enable Google provider
       - Add Google Client ID and Client Secret
       - Save
-3. Configure environment variables
-4. Deploy to Vercel or similar platform
+3. Configure environment variables (see DEPLOYMENT_ENV_VARS.md)
+4. Deploy to Vercel:
+   - Connect GitHub repository
+   - Set environment variables in Vercel dashboard
+   - Deploy automatically on push to main
 
 ## MCP Tools Usage
 Always use MCP tools when available instead of asking the user:
@@ -210,6 +213,7 @@ The application is feature-complete for MVP with:
 - Start ngrok: `ngrok http 3000`
 - Access the HTTPS URL provided by ngrok on iPhone
 - Camera and OAuth features will work with HTTPS
+- **Important**: For OAuth to work, add ngrok URL to Supabase redirect URLs (see NGROK_TESTING_GUIDE.md)
 
 ### Quick Start After Restart
 1. Open terminal 1: `npm run dev` (starts the development server)

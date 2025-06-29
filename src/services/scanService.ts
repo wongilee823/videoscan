@@ -138,6 +138,13 @@ export class ScanService {
       .rpc('check_scan_limit', { p_user_id: userId })
 
     if (error) throw error
+    
+    // Handle null response from the database function
+    // If null, it means no usage tracking exists yet, so allow the scan
+    if (data === null) {
+      return true
+    }
+    
     return data as boolean
   }
 

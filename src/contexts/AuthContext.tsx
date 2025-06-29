@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .upsert({
             id: session.user.id,
             email: session.user.email!,
+            subscription_status: 'free',
           })
           .then(({ error }) => {
             if (error && error.code !== '23505') {

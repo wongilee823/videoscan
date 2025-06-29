@@ -10,7 +10,7 @@
         "--features=database,storage,functions,docs"
       ],
       "env": {
-        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_MCP_TOKEN}"
+        "SUPABASE_ACCESS_TOKEN": "sbp_a4459aa1906d7b2891d85590fe603fb092f5f86d"
       }
     },
     "github": {
