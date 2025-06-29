@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Video Flip-Scan - Convert Videos to PDFs",
+  title: "VidPDF - Convert Videos to PDFs | vidpdf.ai",
   description: "Transform videos of document pages into high-quality, searchable PDF files with AI-powered processing",
 };
 

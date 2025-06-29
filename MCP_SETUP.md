@@ -1,6 +1,6 @@
 # MCP (Model Context Protocol) Setup Guide
 
-This guide will help you set up Supabase and GitHub MCP servers for Claude in the Video Flip-Scan project.
+This guide will help you set up Supabase and GitHub MCP servers for Claude in the VidPDF project.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ This guide will help you set up Supabase and GitHub MCP servers for Claude in th
 
 1. Go to your Supabase dashboard: https://supabase.com/dashboard/account/tokens
 2. Click "Generate new token"
-3. Give it a descriptive name: "Video Flip-Scan MCP"
+3. Give it a descriptive name: "VidPDF MCP"
 4. Select appropriate scopes (recommended: all scopes for full functionality)
 5. Click "Generate token"
 6. **Important**: Copy the token immediately - you won't be able to see it again!
@@ -34,7 +34,7 @@ SUPABASE_MCP_TOKEN=your_supabase_personal_access_token_here
 
 1. Go to GitHub Settings: https://github.com/settings/tokens
 2. Click "Generate new token (classic)" or use fine-grained tokens
-3. Give it a descriptive name: "Video Flip-Scan MCP"
+3. Give it a descriptive name: "VidPDF MCP"
 4. Select scopes:
    - `repo` (full control of private repositories)
    - `read:org` (read org and team membership)

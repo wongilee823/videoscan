@@ -1,6 +1,6 @@
-# Video Flip-Scan
+# VidPDF
 
-Transform videos of document pages into high-quality, searchable PDF files with AI-powered processing.
+Transform videos of document pages into high-quality, searchable PDF files with AI-powered processing. Available at [vidpdf.ai](https://vidpdf.ai).
 
 ## Features
 
@@ -22,8 +22,8 @@ Transform videos of document pages into high-quality, searchable PDF files with 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/videoscan.git
-cd videoscan
+git clone https://github.com/yourusername/vidpdf.git
+cd vidpdf
 ```
 
 2. Install dependencies:
@@ -59,7 +59,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 ## Project Structure
 
 ```
-videoscan/
+vidpdf/
 ├── src/
 │   ├── app/           # Next.js app directory
 │   ├── lib/           # Utility functions

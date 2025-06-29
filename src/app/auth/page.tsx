@@ -58,7 +58,7 @@ export default function AuthPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Video Flip-Scan
+            VidPDF
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-300">
             {isLogin ? 'Sign in to your account' : 'Create a new account'}

@@ -1,7 +1,7 @@
-# Claude Assistant Instructions for Video Flip-Scan Project
+# Claude Assistant Instructions for VidPDF Project
 
 ## Project Overview
-Video Flip-Scan is a web application that converts videos of document pages into searchable PDFs using AI-powered frame extraction and OCR processing.
+VidPDF is a web application that converts videos of document pages into searchable PDFs using AI-powered frame extraction and OCR processing. The application is deployed at vidpdf.ai.
 
 ## Completed Features (As of Dec 29, 2024)
 

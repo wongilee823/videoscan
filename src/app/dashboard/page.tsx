@@ -124,7 +124,7 @@ export default function Dashboard() {
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
               <Link href="/" className="text-xl font-semibold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300">
-                Video Flip-Scan
+                VidPDF
               </Link>
               <Link href="/dashboard" className="text-sm font-medium text-blue-600 dark:text-blue-400">
                 Dashboard

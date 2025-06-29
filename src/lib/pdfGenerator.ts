@@ -11,7 +11,7 @@ export class PDFGenerator {
     frameBlobs: Blob[],
     options: PDFGeneratorOptions = {}
   ): Promise<Uint8Array> {
-    const { includeWatermark = false, title = 'Scanned Document', author = 'Video Flip-Scan' } = options
+    const { includeWatermark = false, title = 'Scanned Document', author = 'VidPDF' } = options
 
     // Create a new PDF document
     const pdfDoc = await PDFDocument.create()
@@ -19,8 +19,8 @@ export class PDFGenerator {
     // Set document metadata
     pdfDoc.setTitle(title)
     pdfDoc.setAuthor(author)
-    pdfDoc.setCreator('Video Flip-Scan')
-    pdfDoc.setProducer('Video Flip-Scan')
+    pdfDoc.setCreator('VidPDF - vidpdf.ai')
+    pdfDoc.setProducer('VidPDF - vidpdf.ai')
     pdfDoc.setCreationDate(new Date())
 
     // Process each frame
@@ -93,7 +93,7 @@ export class PDFGenerator {
     pageWidth: number
   ): Promise<void> {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-    const watermarkText = 'Scanned with Video Flip-Scan'
+    const watermarkText = 'Created with VidPDF'
     const fontSize = 12
     const textWidth = font.widthOfTextAtSize(watermarkText, fontSize)
     const margin = 10

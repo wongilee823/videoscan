@@ -146,7 +146,7 @@ export default function Home() {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link href="/" className="text-xl font-semibold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300">
-                Video Flip-Scan
+                VidPDF
               </Link>
             </div>
             <div className="flex items-center space-x-4">

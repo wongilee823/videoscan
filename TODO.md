@@ -1,4 +1,4 @@
-# Video Flip-Scan - Development TODO List
+# VidPDF - Development TODO List
 
 ## 🚀 Phase 1: MVP Development ✅ COMPLETED!
 

@@ -1,13 +1,13 @@
 # Supabase Setup Guide
 
-This guide will help you set up Supabase for the Video Flip-Scan project.
+This guide will help you set up Supabase for the VidPDF project.
 
 ## 1. Create a Supabase Project
 
 1. Go to [https://supabase.com](https://supabase.com) and sign up/login
 2. Click "New Project"
 3. Fill in the project details:
-   - Name: `videoscan` (or your preferred name)
+   - Name: `vidpdf` (or your preferred name)
    - Database Password: Generate a strong password
    - Region: Choose the closest to your users
 4. Click "Create new project" and wait for setup

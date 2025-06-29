@@ -12,7 +12,7 @@ export default function SetupNotice() {
             Supabase Setup Required
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
-            To use Video Flip-Scan, you need to set up Supabase first.
+            To use VidPDF, you need to set up Supabase first.
           </p>
         </div>
 

@@ -1,7 +1,7 @@
-# Video Flip-Scan - Project Requirements & Specifications
+# VidPDF - Project Requirements & Specifications
 
 ## Project Overview
-Video Flip-Scan is a web application that transforms videos of document pages into high-quality, searchable PDF files using AI-powered processing. Users can simply record a video of themselves flipping through document pages, and the service will automatically extract, enhance, and compile the pages into a professional PDF.
+VidPDF is a web application that transforms videos of document pages into high-quality, searchable PDF files using AI-powered processing. Users can simply record a video of themselves flipping through document pages, and the service will automatically extract, enhance, and compile the pages into a professional PDF.
 
 ## Business Model: Freemium (Free/Pro)
 

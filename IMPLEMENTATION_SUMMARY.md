@@ -1,4 +1,4 @@
-# Video Flip-Scan Implementation Summary
+# VidPDF Implementation Summary
 
 ## Completed Features
 
