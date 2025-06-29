@@ -159,16 +159,25 @@ The application is feature-complete for MVP with:
 
 ### Local Network Testing (iPhone)
 - Computer IP address: `192.168.1.190`
-- Access URL from iPhone: `http://192.168.1.190:3000`
+- HTTP access URL: `http://192.168.1.190:3000` (no camera support)
 - Ensure both devices are on the same WiFi network
-- For HTTPS/OAuth testing, use ngrok or deploy to Vercel
+
+### HTTPS Testing with ngrok
+- Authtoken configured: `2zA6yhkHep2uTBDqEBTKxJiVR27_4qdhm5koPYPa1SAnTHRAm`
+- Start ngrok: `ngrok http 3000`
+- Access the HTTPS URL provided by ngrok on iPhone
+- Camera and OAuth features will work with HTTPS
 
 ### Mobile Testing Checklist
-1. Camera recording functionality
+1. Camera recording functionality (HTTPS only)
 2. Video upload from photo library
 3. Authentication flow (email and Google)
 4. Responsive design on different screen sizes
 5. Touch interactions and gestures
+
+### Known Issues
+- Camera access requires HTTPS (use ngrok or Vercel)
+- First ngrok visit shows warning page - click "Visit Site"
 
 ## Important Reminders
 - Do what has been asked; nothing more, nothing less
